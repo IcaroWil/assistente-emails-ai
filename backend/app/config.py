@@ -1,5 +1,5 @@
 import json
-from typing import List
+from typing import List, Optional
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -9,9 +9,12 @@ class Settings(BaseSettings):
     APP_NAME: str = "Email Classifier API"
     DEBUG: bool = False
 
-    HF_MODEL_NAME: str = "facebook/bart-large-mnli"
+    HF_MODEL_NAME: str = "typeform/distilbert-base-uncased-mnli"
     HF_TASK: str = "zero-shot-classification"
     HF_HYPOTHESIS_PT: str = "Este texto é {}."
+
+    HF_API_BASE: str = Field(default_factory=lambda: "https://api-inference.huggingface.co/models")
+    HF_API_TOKEN: Optional[str] = None
 
     CANDIDATE_LABELS: List[str] = Field(default_factory=lambda: ["Produtivo", "Improdutivo"])
     CORS_ORIGINS: List[str] = Field(default_factory=lambda: ["*"])

@@ -1,39 +1,85 @@
-import os
-from transformers import pipeline, Pipeline
-from .preprocess import clean_text
-from .config import settings
+import re
+import unicodedata
+import requests
 from typing import Dict
+from .config import settings
 
-_classifier: Pipeline | None = None
+_session = requests.Session()
 
-def get_classifier() -> Pipeline:
-    global _classifier
-    if _classifier is None:
-        if os.getenv("MOCK_HF", "0") == "1":
-            class Fake:
-                def __call__(self, text, candidate_labels, **kw):
-                    text = (text or "").lower()
-                    produtivo_kw = ["suporte","erro","acesso","chamado","fatura","cobrança","status"]
-                    label = "Produtivo" if any(k in text for k in produtivo_kw) else "Improdutivo"
-                    return {"labels": [label], "scores": [0.9]}
-            _classifier = Fake()
-        else:
-            _classifier = pipeline(task=settings.HF_TASK, model=settings.HF_MODEL_NAME)
-    return _classifier
+INTERNAL_LABELS = {
+    "prod_access": "actionable support request: account access blocked or login/permission issue",
+    "prod_billing": "actionable billing request: invoice reissue, payment or charge question",
+    "prod_bug": "actionable bug report or system error (error code, cannot complete task)",
+    "prod_status": "actionable request: status update for an existing ticket or order",
+    "non_action": "non-actionable message: greeting, thanks, promotion, newsletter, meme"
+}
+CANDIDATE_EN = list(INTERNAL_LABELS.values())
+NON_ACTION_EN = INTERNAL_LABELS["non_action"]
+
+PRODUCTIVE_HINTS = [
+    r"\berro\b", r"\berror\b", r"\b\d{3}\b",
+    r"\bfalhou?\b", r"\bnao consigo\b", r"\bn[aã]o consigo\b",
+    r"\bacesso\b", r"\bbloquead", r"\blogin\b", r"\bpermiss[aã]o\b", r"\bliberar\b",
+    r"\breset(ar)? senha\b",
+    r"\bfatura\b", r"\bnota fiscal\b", r"\bcobran[çc]a\b", r"\breemit",
+    r"\banexo\b", r"\banex[ao]s\b",
+    r"\bstatus\b", r"\bchamado\b", r"#\d+",
+    r"\bpedido\b", r"\bcheckout\b", r"\bvalidar\b",
+]
+IMPRODUCTIVE_HINTS = [
+    r"\bbom dia\b", r"\bboa tarde\b", r"\bboa noite\b",
+    r"\bobrigad[oa]\b", r"\bagradec",
+    r"\bpromo[cç][aã]o\b", r"%", r"\bdesconto\b", r"\bnewsletter\b",
+    r"\bmeme\b", r"\bhappy hour\b", r"\bignore\b", r"\bf[ée]rias\b"
+]
+
+def _normalize(s: str) -> str:
+    s = s.lower()
+    s = unicodedata.normalize("NFKD", s)
+    s = "".join(ch for ch in s if not unicodedata.combining(ch))
+    return s
+
+def _hf_headers():
+    h = {"Content-Type": "application/json"}
+    if settings.HF_API_TOKEN:
+        h["Authorization"] = f"Bearer {settings.HF_API_TOKEN}"
+    return h
 
 def classify_email(text: str) -> Dict[str, float | str]:
-    text_clean = clean_text(text)
-    clf = get_classifier()
-    template = settings.HF_HYPOTHESIS_PT
-    if "{label}" in template:
-        template = template.replace("{label}", "{}")
+    raw = (text or "").strip()
+    norm = _normalize(raw)
 
-    result = clf(
-        text_clean,
-        candidate_labels=settings.CANDIDATE_LABELS,
-        hypothesis_template=template,
-        multi_label=False,
-    )
-    label = result["labels"][0]
-    score = float(result["scores"][0])
-    return {"categoria": label, "score": score}
+    payload = {
+        "inputs": raw,
+        "parameters": {
+            "candidate_labels": CANDIDATE_EN,
+            "hypothesis_template": "This email is {}.",
+            "multi_label": False
+        },
+        "options": {"wait_for_model": True, "use_cache": True}
+    }
+    url = f"{settings.HF_API_BASE.rstrip('/')}/{settings.HF_MODEL_NAME}"
+    resp = _session.post(url, headers=_hf_headers(), json=payload, timeout=30)
+    resp.raise_for_status()
+    out = resp.json()
+
+    labels = out.get("labels") or []
+    scores = out.get("scores") or []
+    if not labels or not scores:
+        raise RuntimeError(f"Unexpected HF response: {out}")
+
+    label_en = labels[0]
+    score = float(scores[0])
+    categoria = "Improdutivo" if label_en == NON_ACTION_EN else "Produtivo"
+
+    low = score < 0.70
+
+    if any(re.search(p, norm) for p in PRODUCTIVE_HINTS):
+        if categoria == "Improdutivo" or low:
+            categoria = "Produtivo"
+
+    if any(re.search(p, norm) for p in IMPRODUCTIVE_HINTS):
+        if categoria == "Produtivo" and low:
+            categoria = "Improdutivo"
+
+    return {"categoria": categoria, "score": score}
