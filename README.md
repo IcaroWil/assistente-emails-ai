@@ -4,11 +4,8 @@ Classifica emails entre **Produtivo** e **Improdutivo** e sugere uma **resposta 
 Stack: **FastAPI**, **Hugging Face Inference API** (zero-shot), **HTML/CSS/JS**.
 
 ## Demo
-- **Frontend:** _coloque aqui o link (Vercel/Netlify)_
-- **Backend (API):** _coloque aqui o link (Render)_
-
-> No frontend, você pode passar a URL da API por query string:
-> `https://seu-front.vercel.app/?api=https://SEU-BACKEND.onrender.com`
+- **Frontend:** https://assistente-emails-ai.vercel.app/
+- **Backend (API):** https://assistente-emails-ai.onrender.com/docs
 
 ---
 
