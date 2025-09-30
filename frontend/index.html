@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Email AI Classifier</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Classificador de Emails</h1>
+
+    <section class="card">
+      <h2>Colar texto</h2>
+      <textarea id="emailText" rows="8" placeholder="Cole aqui o conteúdo do email..."></textarea>
+      <button id="btnProcess">Classificar</button>
+    </section>
+
+    <section class="card">
+      <h2>Ou enviar arquivo (.txt / .pdf)</h2>
+      <input id="fileInput" type="file" accept=".txt,.pdf" />
+      <button id="btnUpload">Enviar</button>
+    </section>
+
+    <section id="result" class="card hidden">
+      <h2>Resultado</h2>
+      <div><strong>Categoria:</strong> <span id="categoria"></span></div>
+      <div><strong>Confiança:</strong> <span id="score"></span></div>
+      <div><strong>Resposta sugerida:</strong></div>
+      <pre id="resposta"></pre>
+    </section>
+
+    <footer>
+      <span id="status">Pronto</span>
+    </footer>
+  </main>
+
+  <script>
+    window.API_BASE_URL = "http://localhost:8000";
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>
