@@ -1,0 +1,43 @@
+# ==== Python ====
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.venv*/
+.python-version
+
+# Testes / qualidade
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Logs
+*.log
+
+# ==== Env files (backend/front) ====
+.env
+**/.env
+**/.env.*
+
+# ==== Frontend / ferramentas ====
+node_modules/
+dist/
+.vite/
+.vercel/
+*.map
+
+# ==== IDEs ====
+.vscode/
+.idea/
+
+# ==== SO ====
+.DS_Store
+Thumbs.db
+
+# ==== Caches diversos ====
+.nox/
+.tox/
+.cache/
