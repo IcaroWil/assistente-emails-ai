@@ -1,3 +1,4 @@
+# backend/tests/conftest.py
 import re
 import pytest
 from unittest.mock import Mock
@@ -5,6 +6,7 @@ import backend.app.classifier as clf
 
 @pytest.fixture(autouse=True)
 def mock_hf(monkeypatch):
+    """Mocka a chamada à Hugging Face só durante os testes."""
     prod_patterns = [re.compile(p) for p in clf.PRODUCTIVE_HINTS]
     imp_patterns  = [re.compile(p) for p in clf.IMPRODUCTIVE_HINTS]
 

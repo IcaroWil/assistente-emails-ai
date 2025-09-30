@@ -1,8 +1,10 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict, AliasChoices
 from typing import List, Optional
 
 class EmailInput(BaseModel):
-    text: str = Field(..., min_length=1)
+    model_config = ConfigDict(extra="ignore")
+    text: str = Field(..., min_length=1,
+                validation_alias=AliasChoices("texto", "text"))
 
 class ProcessedResult(BaseModel):
     categoria: str
