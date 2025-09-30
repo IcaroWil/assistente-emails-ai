@@ -1,7 +1,7 @@
 # Assistente Email AI
 
 Classifica emails entre **Produtivo** e **Improdutivo** e sugere uma **resposta automática**.  
-Stack: **FastAPI**, **Transformers (zero-shot)**, **HTML/CSS/JS**.
+Stack: **FastAPI**, **Hugging Face Inference API** (zero-shot), **HTML/CSS/JS**.
 
 ## Demo
 - **Frontend:** _coloque aqui o link (Vercel/Netlify)_
@@ -57,19 +57,19 @@ pytest -q
 
 ## Endpoints
 - `GET /` – ping
-- `GET /health` - `{ status, model }`
-- `POST /process` - body: `{ "text": "..." }`
-resposta: `{ "categoria": "Produtivo|Improdutivo", "score": 0.93, "resposta": "..." }`
-- `POST /upload` - `multipart/form-data` com `file` (`.txt` ou `.pdf`)
+- `GET /health` – `{ "status": "ok", "model": "..." }`
+- `POST /process` – body: `{ "texto": "..." }`  
+  resposta: `{ "categoria": "Produtivo|Improdutivo", "score": 0.93, "resposta": "..." }`
+- `POST /upload` – `multipart/form-data` com `file` (`.txt` ou `.pdf`)
 
 ---
 
 ## Como funciona (resumo técnico)
-1. Pré-processamento (`app/preprocess.py`): normaliza texto, remove URLs/emails, quoted lines, pontuação.
-2. Classificação (`app/classifier.py`): `zero-shot-classification` com `HF_HYPOTHESIS_PT="Este texto é {}."` e labels `["Produtivo","Improdutivo"]`
-3. Resposta automática (`app/responder.py`): template simples por categoria.
-4. Uploads (`app/utils.py`): extrai texto de `.txt` e `.pdf` via `pypdf`.
-5. API (`uvicorn_app.py` + `app/routes.py`): FastAPI com CORS aberto para o front.
+1. **Classificação**: chama a **Hugging Face Inference API** com um conjunto de rótulos descritivos em inglês
+   (ex.: “actionable bug report…”, “non-actionable…”) e mapeia para **Produtivo/Improdutivo**.
+2. **Pós-filtro leve**: regex em PT corrige casos clássicos (ex.: “erro 500”, “fatura”, “acesso bloqueado”, “#12345”).
+3. **Resposta automática**: `responder.py` monta a resposta de acordo com a categoria.
+4. **Uploads**: `pypdf` extrai texto de PDFs.
 
 ---
 
